@@ -45,7 +45,6 @@ def preprocess_data(input_texts, target_texts, num_samples=10000):
         for t, char in enumerate(target_text):
             decoder_input_data[i, t, target_token_index[char]] = 1.0
             if t > 0:
-                # decoder_target_data is ahead of decoder_input_data by one timestep
                 decoder_target_data[i, t - 1, target_token_index[char]] = 1.0
 
     return (encoder_input_data, decoder_input_data, decoder_target_data,
@@ -125,7 +124,7 @@ def decode_sequence(input_seq, encoder_model, decoder_model, target_token_index,
 
 # 主程序
 if __name__ == "__main__":
-    # 这里是一个样例
+    # example
     input_texts = ["人之初 性本善", "性相近 习相远", "苟不教 性乃迁","初之人 善本性", "近相性 远相习", "教不苟 迁乃性"]
     target_texts = ["\t人之初 性本善\n", "\t性相近 习相远\n","\t苟不教 性乃迁\n","\t人之初 性本善\n", "\t性相近 习相远\n","\t苟不教 性乃迁\n"]
 
