@@ -1,13 +1,13 @@
+import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense
 import numpy as np
-
 # 数据预处理
 def preprocess_data(input_texts, target_texts, num_samples=10000):
-    """
-    对输入数据和目标数据进行预处理，并构建词汇表和字符到索引的映射。
-    """
     input_characters = set()
     target_characters = set()
     for input_text, target_text in zip(input_texts, target_texts):
@@ -39,7 +39,6 @@ def preprocess_data(input_texts, target_texts, num_samples=10000):
         (len(target_texts), max_decoder_seq_length, len(target_characters)),
         dtype="float32",
     )
-
     for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
         for t, char in enumerate(input_text):
             encoder_input_data[i, t, input_token_index[char]] = 1.0
@@ -54,9 +53,7 @@ def preprocess_data(input_texts, target_texts, num_samples=10000):
 
 # 构建模型
 def build_model(num_encoder_tokens, num_decoder_tokens, latent_dim):
-    """
-    构建编码器-解码器模型。
-    """
+    # 这部分就是一个大的encoder-decoder模型
     # 编码器
     encoder_inputs = Input(shape=(None, num_encoder_tokens))
     encoder = LSTM(latent_dim, return_state=True)
@@ -77,9 +74,6 @@ def build_model(num_encoder_tokens, num_decoder_tokens, latent_dim):
 
 # 构建推理模型
 def build_inference_model(encoder_inputs, encoder_states, decoder_inputs, decoder_lstm, decoder_dense, latent_dim):
-    """
-    构建推理模型，用于编码和解码阶段的推断。
-    """
     # 编码器模型
     encoder_model = Model(encoder_inputs, encoder_states)
 
@@ -131,9 +125,9 @@ def decode_sequence(input_seq, encoder_model, decoder_model, target_token_index,
 
 # 主程序
 if __name__ == "__main__":
-    # 示例数据（中文句子）
-    input_texts = ["人之初 性本善", "性相近 习相远", "苟不教 性乃迁"]
-    target_texts = ["\t人之初 性本善\n", "\t性相近 习相远\n","\t苟不教 性乃迁\n"]
+    # 这里是一个样例
+    input_texts = ["人之初 性本善", "性相近 习相远", "苟不教 性乃迁","初之人 善本性", "近相性 远相习", "教不苟 迁乃性"]
+    target_texts = ["\t人之初 性本善\n", "\t性相近 习相远\n","\t苟不教 性乃迁\n","\t人之初 性本善\n", "\t性相近 习相远\n","\t苟不教 性乃迁\n"]
 
     # 数据预处理
     (encoder_input_data, decoder_input_data, decoder_target_data,
@@ -155,16 +149,26 @@ if __name__ == "__main__":
 
     # 编译并训练模型
     model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
-    model.fit(
+    history = model.fit(
         [encoder_input_data, decoder_input_data],
         decoder_target_data,
         batch_size=64,
         epochs=500,  # 增加到 500
-        validation_split=0,
+        validation_split=0,  # 设置验证集
     )
 
+    # 绘制训练损失和准确率曲线
+    plt.plot(history.history['loss'], label='train loss')
+    # plt.plot(history.history['val_loss'], label='val loss')
+    plt.title('Loss during training')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
     # 保存模型
     model.save("s2s.h5")
+    test_accuracy = model.evaluate([encoder_input_data, decoder_input_data], decoder_target_data, batch_size=64)
+    print(f"Test Accuracy: {test_accuracy[1]:.4f}")
 
     # 构建推理模型
     encoder_model, decoder_model = build_inference_model(
