@@ -1,0 +1,65 @@
+# 中文分词
+class ImprovedTokenizer:
+    def __init__(self, dict_file, stop_words_file=None):
+        # 加载词典，存储为 set 以提高查找效率
+        self.word_dict = set()
+        with open(dict_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                word = line.strip()
+                if word:
+                    self.word_dict.add(word)
+
+        # 加载停用词表（可选），如果提供了停用词文件
+        self.stop_words = set()
+        if stop_words_file:
+            with open(stop_words_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    word = line.strip()
+                    if word:
+                        self.stop_words.add(word)
+
+    def _max_match(self, sentence, is_reverse=False):
+        result = []
+        i = 0
+        if is_reverse:
+            sentence = sentence[::-1]  # 句子翻转
+        while i < len(sentence):
+            match_found = False
+            # 从当前位置开始，尝试匹配最长的词
+            for j in range(len(sentence), i, -1):
+                word = sentence[i:j]
+                if word in self.word_dict:
+                    result.append(word)
+                    i = j
+                    match_found = True
+                    break
+            # 如果没有找到匹配的词，默认分一个字
+            if not match_found:
+                result.append(sentence[i])
+                i += 1
+        if is_reverse:
+            result = result[::-1]  # 反转结果，恢复原句顺序
+        return result
+
+    def segment(self, sentence):
+        # 使用双向最大匹配法
+        forward_result = self._max_match(sentence)
+        reverse_result = self._max_match(sentence, is_reverse=True)
+
+        # 比较两个结果，选择最优的（这里选择短的分词列表作为优先）
+        if len(forward_result) <= len(reverse_result):
+            result = forward_result
+        else:
+            result = reverse_result
+
+        return result
+
+tokenizer = ImprovedTokenizer('dict.txt', 'hit_stopwords.txt')  # 假设有词典文件和停用词表
+print("请输入三句话:")
+sentence=[]
+for _ in range(3):
+    s=input()
+    sentence.append(s)
+for _ in range(3):
+    tokens = tokenizer.segment(sentence[_])
+    print(f"第{_+1}句话分词结果:{tokens}")
